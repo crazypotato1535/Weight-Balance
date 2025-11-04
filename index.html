@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3c3c3c"> 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weight & Balance Chart</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: rgb(60,60,60);
+            color: rgb(255,255,255); 
+        }
+        input[type="number"], input[type="text"]  {
+            margin: 5px 0;
+            padding: 10px;
+            width: 200px;
+            font-weight: bold;
+            background-color: rgb(0,0,0);
+            color: rgb(255,255,13)
+        }
+        #result {
+            margin-top: 10px;
+            font-weight: bold;
+            background-color: rgb(255,255,0);
+            color: rgb(255,255,0)
+        }
+        label {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;  /* small space between button and text */
+            margin: 0;
+            padding: 0;
+
+        }
+    </style>
+</head>
+<body>
+    <h2>Weight & Balance</h2>
+<form>
+    
+<label><input type="radio" name="Aircraft" value="1041Q" checked> PA-28-161 1041Q</label><br>
+<label><input type="radio" name="Aircraft" value="TEST"> TEST</label><br>
+
+</form>
+    <input type="number" id="weight1" placeholder="Pilot & Front Passenger">
+    <br>
+    <input type="number" id="weight2" placeholder="Rear Passengers">
+    <br>
+    <input type="number" id="weight3" placeholder="Baggage">
+    <br>
+    <div id="ZeroFuel">Zero Fuel:</div>
+    <input type="number" id="weight4" placeholder="Total Fuel">
+    <br>
+    <input type="number" id="weight5" placeholder="Run-up Fuel">
+    <br>
+    <input type="number" id="weight6" placeholder="Fuel Burn">
+    <br>
+
+
+
+    <div id="RampWeight">Ramp Weight:</div>
+    <div id="TakeoffWeight"> Takeoff Weight</div>
+    <div id="LandingWeight"> Landing Weight</div>
+
+
+    <script>
+
+        let _1041Q = [1527.0, 133899.29, 80.5, 118.1, 142.8, 95];
+        let _TEST = [1,1,1,1,1,1]
+
+
+
+        let _aircraft = _1041Q;
+
+        const aircraftSelector = document.querySelectorAll('input[name="Aircraft"]');
+        aircraftSelector.forEach(radio => {
+            radio.addEventListener('change', () => {
+                const selected = radio.value;
+                if (selected === '1041Q') {
+                    _aircraft = _1041Q;
+                } else if (selected === 'TEST') {
+                    _aircraft = _TEST;
+                }
+                UpdateSum(); // recalc immediately after switch
+            });
+        });
+
+
+
+
+
+
+        const frontInput      = document.getElementById('weight1');
+        const rearInput       = document.getElementById('weight2');
+        const baggageInput    = document.getElementById('weight3');
+        const zeroFuelResult  = document.getElementById('ZeroFuel');
+
+        const fuelInput       = document.getElementById('weight4');
+        const fuelRunup       = document.getElementById('weight5');
+        const fuelBurn        = document.getElementById('weight6');
+        const rampWeightResult= document.getElementById('RampWeight');
+        const takeoffWeightResult = document.getElementById('TakeoffWeight');
+        const landingWeightResult = document.getElementById('LandingWeight');
+        const cgLimit = document.getElementById('CG');
+
+        function UpdateSum() {
+            const planeWeight = parseFloat(_aircraft[0]);
+            const planeMoment = parseFloat(_aircraft[1]);
+
+            const frontWeight = parseFloat(frontInput.value) || 0;
+            const frontMoment = parseFloat(frontInput.value*_aircraft[2]) || 0;
+
+            const rearWeight = parseFloat(rearInput.value) || 0;
+            const rearMoment = parseFloat(rearInput.value*_aircraft[3]) || 0;
+
+            const baggageWeight = parseFloat(baggageInput.value) || 0;
+            const baggageMoment = parseFloat(baggageInput.value*_aircraft[4]) || 0;
+
+
+            const zeroFuelWeight = planeWeight + frontWeight + rearWeight + baggageWeight;
+            const zeroFuelMoment = planeMoment + frontMoment + rearMoment + baggageMoment;
+            const zeroFuelArm = zeroFuelMoment/zeroFuelWeight;              
+            zeroFuelResult.textContent = `Zero Fuel: ${zeroFuelWeight.toFixed(2)}, ${zeroFuelArm.toFixed(2)}, ${zeroFuelMoment.toFixed(2)}`;
+
+            const rampFuel   = parseFloat(fuelInput.value) || 0;
+            const rampWeight = (rampFuel*6)+zeroFuelWeight;
+            const rampMoment = (rampFuel*6*_aircraft[5])+zeroFuelMoment;
+            const rampArm    = rampMoment/rampWeight;
+            rampWeightResult.textContent = `Ramp Weight:  ${rampWeight.toFixed(2)}, ${rampArm.toFixed(2)}, ${rampMoment.toFixed(2)}`;
+
+            const runupFuel = parseFloat(fuelRunup.value) || 0;
+            const takeoffWeight = -(runupFuel*6)+rampWeight;
+            const takeoffMoment = -(runupFuel*6*_aircraft[5])+rampMoment;
+            const takeoffArm    = takeoffMoment/takeoffWeight;
+            takeoffWeightResult.textContent = `Takeoff Weight:  ${takeoffWeight.toFixed(2)}, ${takeoffArm.toFixed(2)}, ${takeoffMoment.toFixed(2)}`;
+
+            const flightFuel = parseFloat(fuelBurn.value) || 0;
+            const landingWeight = -(flightFuel*6)+takeoffWeight;
+            const landingMoment = -(flightFuel*6*_aircraft[5])+takeoffMoment;
+            const landingArm = landingMoment/landingWeight;
+            landingWeightResult.textContent = `Landing Weight: ${landingWeight.toFixed(2)}, ${landingArm.toFixed(2)}, ${landingMoment.toFixed(2)}`;
+        }
+
+        frontInput.addEventListener('input', UpdateSum);
+        rearInput.addEventListener('input', UpdateSum);
+        baggageInput.addEventListener('input', UpdateSum);
+        fuelInput.addEventListener('input', UpdateSum);
+        fuelRunup.addEventListener('input', UpdateSum);
+        fuelBurn.addEventListener('input', UpdateSum);
+        UpdateSum()
+
+    </script>
+</body>
+</html>
